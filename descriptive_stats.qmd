@@ -1,0 +1,347 @@
+---
+title: "Descriptive Statistics and Visualization with R"
+author: "Boro, Binya Benson Abe"
+format: html
+editor: visual
+---
+
+```{r}
+#| label: install and load packages
+#| message: false
+#| include: false
+
+if(!require(pacman)) install.packages("pacman") # install pacman to manage relevant packages
+
+## install and load packages
+pacman::p_load(
+tidyverse,
+janitor,
+esquisse,
+haven,
+here,
+modelsummary,
+labelled,
+dplyr,
+tidyr
+)
+```
+
+1.  Dataset: school_spending.dta
+
+The dataset is "school_spending.dta." It consists of observations on school expenditure and pupil's performance.
+
+```{r}
+#| label: set working directory and import dataset
+#| message: false
+#| warning: false
+#| include: false
+
+getwd() # check working directory
+
+## import dataset
+educ_spending <- read_dta( # import Stata dataset into the object "educ_spending"
+  here # obtain the dataset from the "data" subfolder outside the working directory
+  ("data/school_spending.dta"))
+```
+
+2.  Data cleaning
+
+The variable attributes/labels are in German. They were translated into English.
+
+```{r}
+#| label: data cleaning
+#| message: false
+#| warning: false
+#| include: false
+
+## View dataset
+view(educ_spending)
+# The variable labels are in German; need to translate to English
+
+## inspect dataset
+head(educ_spending)
+dim(educ_spending) # show number of rows and columns: 420 rows and 11 columns
+colSums(is.na(educ_spending)) # check missing data: no missing observations
+
+# Changing variable attributes/ labels to English
+attr(educ_spending$dist_cod, "label") <- "District_ID"
+attr(educ_spending$read_scr, "label") <- "Average test scores reading"
+attr(educ_spending$math_scr, "label") <- "Average test scores math"
+attr(educ_spending$testscr, "label") <- "Average Test Scores"
+attr(educ_spending$meal_pct, "label") <- "Share of pupils with food vouchers (in %)"
+attr(educ_spending$comp_stu, "label") <- "Number of computers per pupil"
+attr(educ_spending$expn_stu, "label") <- "Expenditures per pupil"
+attr(educ_spending$avginc, "label") <- "Average income (in 1000 US$)"
+attr(educ_spending$el_pct, "label") <- "Share of non native English speakers (in %)"
+attr(educ_spending$str, "label") <- "Student Teacher Ration (in %)"
+attr(educ_spending$computer, "label") <- "Number of computers"
+
+## save cleaned dataset in the data subfolder
+write_dta(
+  educ_spending, 
+  here("data/cleaned_educ_spending.dta"))
+```
+
+3.  Descriptive statistics.
+
+-   There aare 420 observations and 11 variables.
+-   The pupil's average test score is 654.16 points, with the maximum and minimum points being 706.75 and 605.55 respectfully.
+-   A district spends on average 5312 US dollars per pupil.
+-   The average share of pupil's with food voucher is 45 percent
+-   The ratio of pupils per teacher is about 20 percent.
+-   The average income of a district is about 15,000 US dollars.
+-   The mean share of non-native English speakers is about 16 percent.
+
+```{r}
+#| label: descriptive statistics
+#| echo: true
+#| message: false
+#| warning: false
+
+## Import cleaned data
+sch_spending <- read_dta(here("data/cleaned_educ_spending.dta"))
+
+## summary statistics of key variables
+
+datasummary(
+  testscr + expn_stu + str + meal_pct + comp_stu + avginc + el_pct ~
+    Mean + SD + Min + Max + N,
+  data = sch_spending,
+  fmt = 2,
+  title = "Table 1: Summary Statistics"
+  )
+```
+
+4.  Data visualization with ggplot2
+
+First, I used histograms to analyse the key variables of interest, average test score - testscr and expenditure per pupil - expn_stu. Then, I used graphical methods to analyse the relationship between average test scores and income, food vouchers, pupil-teacher ratio, non-native English speakers, among others. I applied esquisser from the esquisse package to build the ggplot2 graphs and code.
+
+1.  The distribution of Pupil's Average Test Scores
+
+The distribution of pupil's average test scores is approximately symmetric around the mean. Most pupil's test scores cluster around 660 points, suggesting an even distribution of pupil's performance across all districts.
+
+```{r}
+#| label: hist. of testscr
+#| echo: true
+#| message: false
+#| warning: false
+
+#esquisser(sch_spending) # esquisser creates ggplot2 graphs and their codes
+
+ggplot(sch_spending) +
+  aes(x = testscr) +
+  geom_histogram(bins = 30L, fill = "steelblue") +
+  labs(
+    x = "Average Test Score",
+    title = "The Distribution of Pupil's Average Test Scores"
+  ) +
+  theme_gray() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+# export figure
+    ggsave(here("output/hist_testscr.png"),
+      width = 7,
+      height = 5,
+      dpi = 300
+    )
+```
+
+2.  The distribution of Expenditure Per Pupil
+
+The distribution of expenditure per pupil is approximately symmetric around the mean. Most districts spend around 5000 US dollars on pupils. However, the histogram reveals some few extreme observations, which may represent higher expenditure per pupil in some districts. Furthermore, the distribution is slightly right-skewed, suggesting fewer districts with very high income and expenditure per pupil.
+
+```{r}
+    #| label: hist of expn_stu
+    #| echo: true
+    #| message: false
+    #| warning: false
+    ggplot(sch_spending) +
+      aes(x = expn_stu) +
+      geom_histogram(bins = 29L, fill = "steelblue") +
+      labs(title = "The Distribution of Expenditures Per Pupil") +
+      theme_linedraw() +
+      theme(
+        plot.title = element_text(face = "bold",
+        hjust = 0.5),
+        axis.title.y = element_text(face = "bold"),
+        axis.title.x = element_text(face = "bold"),
+        legend.title = element_text(face = "bold")
+      )
+
+  # export figure
+    ggsave(here("output/hist.expn.png"),
+      width = 7,
+      height = 5,
+      dpi = 300
+    )
+```
+
+3.  Relationship Between Income and Pupil's Performance
+
+The relationship between average income and pupil's average test score is positive. In addition, the regression line is upward sloping, implying that districts with higher average incomes tend to have higher pupil's test scores.
+
+```{r}
+    #| label: testscr&avginc
+    #| echo: true
+    #| message: false
+    #| warning: false
+    ggplot(sch_spending) +
+      aes(x = avginc, y = testscr) +
+      geom_point(colour = "steelblue", alpha = 0.6) +
+      geom_smooth(method = "lm", color = "black", se = TRUE) +
+      labs(
+        x = "Average Income (in 1000 US$)",
+        title = "Relationship Between Income and Pupil's Test Score"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold",
+        hjust = 0.5),
+        axis.title.y = element_text(face = "bold"),
+        axis.title.x = element_text(face = "bold")
+      )
+
+  # export figure
+    ggsave(here("output/figInc_testscr.png"),
+      width = 7,
+      height = 5,
+      dpi = 300
+    )
+```
+
+4.  Relationship Between Meal Vouchers and Pupil's Performance
+
+There is a negative association between the share of pupil's with meal vouchers and pupil's average test scores. The regression line is downward sloping, suggesting that schools with a high percentage of pupil's with food vouchers tend to record poor average test scores.
+
+```{r}
+    #| label: meals&testscr
+    #| echo: true
+    #| message: false
+    #| warning: false
+
+    ggplot(sch_spending) +
+      aes(x = meal_pct, y = testscr) +
+      geom_point(shape = "circle", colour = "black") +
+      geom_smooth(method = "lm", color = "darkred", se = TRUE) +
+      labs(
+        x = "Share of Pupils with Food Vouchers (in %)",
+        title = "Relationship Between Meals and Pupils Test Score"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold",
+        hjust = 0.5),
+        axis.title.y = element_text(face = "bold"),
+        axis.title.x = element_text(face = "bold")
+      )
+    
+  # export figure
+    ggsave(here("output/figMeal_testscr.png"),
+      width = 7,
+      height = 5,
+      dpi = 300
+    )
+```
+
+5.  Relationship between Expenditure and Pupil's Test Scores
+
+There is a positive relationship, the regression line slopes upward. This means that high expenditure per pupil improves pupil's performance in tests.
+
+```{r}
+    #| label: expn_stu&testscr
+    #| echo: true
+    ggplot(sch_spending) +
+      aes(x = expn_stu, y = testscr) +
+      geom_point(
+        size = 1.25,
+        shape = "bullet",
+        colour = "black"
+      ) +
+      geom_smooth(method = "lm", color = "gray40", se = TRUE) +
+      labs(
+        x = "Expenditure Per Pupil",
+        title = "Relationship between Expenditure Per Pupil and Pupil's Test Score"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold",
+        hjust = 0.5),
+        axis.title.y = element_text(face = "bold"),
+        axis.title.x = element_text(face = "bold")
+      )
+    
+    # export figure
+    ggsave(here("output/figExpn_testscr.png"),
+      width = 7,
+      height = 5,
+      dpi = 300
+    )
+```
+
+6.  Relationship between Non-native English Speakers and Pupil's Performance.
+
+There is a negative association between the share of non-native English speakers and pupil's average test scores: The regression line is downward sloping, implying that having non-native English speakers tend to worsen pupil's test scores.
+
+```{r}
+    #| label: el_pct&testscr
+    #| echo: true
+    #| message: false
+    #| warning: false
+
+    ggplot(sch_spending) +
+      aes(x =el_pct, y = testscr) +
+      geom_point(shape = "circle", colour = "darkblue") +
+      geom_smooth(method = "lm", color = "darkred", se = TRUE) +
+      labs(
+        x = "Share of Non-native English Speakers (in %)",
+        title = "Relationship between Non-native English Speakers and Pupil's Test Score"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold",
+        hjust = 0.5),
+        axis.title.y = element_text(face = "bold"),
+        axis.title.x = element_text(face = "bold")
+      )
+    
+  # export figure
+    ggsave(here("output/figElpct_testscr.png"),
+      width = 7,
+      height = 5,
+      dpi = 300
+    )
+```
+
+7.  Relationship between Computer and Pupil's Performance
+
+The number of computers per pupil has a positive association with pupil's average test scores. The regression line slopes upward, suggesting that having a computer improves pupil's performance.
+
+```{r}
+    #| label: comp_stu&testscr
+    #| echo: true
+    #| message: false
+    #| warning: false
+
+    ggplot(sch_spending) +
+      aes(x = comp_stu, y =testscr) +
+      geom_point(shape = "circle", colour = "darkgreen") +
+      geom_smooth(method = "lm", color = "darkred", se = TRUE) +
+      labs(
+        x = "Number of Computers Per Pupil",
+        title = "Relationship Between Computer Per Pupil and Average Test Score"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold",
+        hjust = 0.5),
+        axis.title.y = element_text(face = "bold"),
+        axis.title.x = element_text(face = "bold")
+      )
+    
+# export figure
+    ggsave(here("output/figComp_testscr.png"),
+      width = 7,
+      height = 5,
+      dpi = 300
+    )
+```
