@@ -1,2 +1,2 @@
-# Descriptive-Statistics-and-Visualization-with-R
+# Descriptive_Statistics_and_Visualization_with_R
 This is a practical project, aimed at producing descriptive statistics and visualizations with RStudio. The focus was to establish how key variables in the dataset relate with pupil's average test score. I used esquisser from the package esquisse to create the ggplot2 graphs and code, making the process easy and the code reproducible. I have uploaded the R code, written in Quarto document, and a pdf file showing brief interpretations of the table, histograms, and scatter plots of the key variables.
